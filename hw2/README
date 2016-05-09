@@ -1,0 +1,26 @@
+# Build and Clean
+## Build
+Use `make` to build the shared library, it will generate `hijack.so`
+
+## clean
+Use `make clean` to clean the project folder
+
+# Usage
+Use `LD_PRELOAD=./hijack.so <command>` to record some interesting
+library calls. We recommend to use `wget <hostname>`.
+
+The record will be log into a file `log` within current directory.
+
+## Features
+- Openfile: <filename> <mode> <FILE*>
+- Write: <FILE*>
+- Closefile: <FILE*>
+- Resolve: <hostname>
+- Connect: <ip_address>
+
+## Hijacked functions
+- `fopen`
+- `fputs`
+- `fclose`
+- `getaddrinfo`
+- `connect`

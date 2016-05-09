@@ -1,0 +1,7 @@
+*.o
+mysh
+.cproject
+.project
+.settings
+*.swp
+.vscode
