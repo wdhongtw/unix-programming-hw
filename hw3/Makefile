@@ -4,12 +4,9 @@ TARGET = mysh
 
 .PHONY: all clean
 
-all: $(TARGET) showid
+all: $(TARGET)
 
 $(TARGET): $(TARGET).o
-	$(CC) -o $@ $^ $(CFLAGS)
-
-showid: showid.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c
