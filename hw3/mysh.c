@@ -28,7 +28,7 @@ typedef struct process
     int status;                 /* reported status value */
     bool first, last;
     char *infilename, *outfilename;
-    
+
 } process;
 
 /* A job is a pipeline of processes.  */
@@ -75,13 +75,13 @@ job *parse_cmd(char* cmd_str) {
     process *first_p, *current_p;
     job *j;
     char *current_cmd;
-    
+
     j = (job *)malloc(sizeof(job));
-    
+
     current_cmd = strtok(cmd_str, "|\n");
     current_p = first_p = (process *)malloc(sizeof(process));
     init_process(current_p);
-    
+
     current_p->command = current_cmd;
     current_p->first = true;
     i = 0;
@@ -89,25 +89,25 @@ job *parse_cmd(char* cmd_str) {
         current_p->next = (process *)malloc(sizeof(process));
         current_p = current_p->next;
         init_process(current_p);
-        
+
         current_p->command = current_cmd;
         i++;
     }
     current_p->last = true;
-    
+
     current_p = first_p;
     while (current_p!=NULL) {
-        
+
         current_p->command = strtok(current_p->command, "<");
         if ((current_p->infilename=strtok(NULL, "<"))!=NULL) {
             current_p->infilename = strtok(current_p->infilename, " ");
         }
-        
+
         current_p->command = strtok(current_p->command, ">");
         if ((current_p->outfilename=strtok(NULL, ">"))!=NULL) {
             current_p->outfilename = strtok(current_p->outfilename, " ");
         }
-        
+
         i = 0;
         (current_p->argv)[0] = strtok(current_p->command, " \t\n"); i++;
         while (((current_p->argv)[i]=strtok(NULL, " \t\n"))!=NULL) {
@@ -120,7 +120,7 @@ job *parse_cmd(char* cmd_str) {
         (current_p->argv)[i] = NULL;
         current_p = current_p->next;
     }
-    
+
     j->first_process = first_p;
     j->pgid=0;
     return j;
@@ -149,10 +149,10 @@ bool run_simple(char *cmd, pid_t *child_group, bool first) {
     if (child==0) { // child
         if(first) setpgid(0, 0);
         execvp(argv[0], argv);
-    } else {        // parent 
+    } else {        // parent
         if (first) {
             *child_group = child;
-            
+
         } else {
             setpgid(child, *child_group);
         }
@@ -162,16 +162,16 @@ bool run_simple(char *cmd, pid_t *child_group, bool first) {
 }
 
 void run_process(process *p, pid_t pgid, int infile, int outfile) {
-    
+
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
     signal(SIGTSTP, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     signal(SIGTTOU, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
-    
+
     setpgid(0, pgid);
-    
+
     if (infile!=STDIN_FILENO) {
         dup2(infile, STDIN_FILENO);
         close(infile);
@@ -180,11 +180,11 @@ void run_process(process *p, pid_t pgid, int infile, int outfile) {
         dup2(outfile, STDOUT_FILENO);
         close(outfile);
     }
-    
+
     execvp(p->argv[0], p->argv);
     perror("execvp");
     exit(1);
-    
+
     return;
 }
 
@@ -194,12 +194,12 @@ void run_job(job *j) {
     int mypipe[2], infile, outfile;
     int child_num;
     int status;
-    
+
     p = j->first_process;
     infile = STDIN_FILENO;
-    if (p->infilename!=NULL) 
+    if (p->infilename!=NULL)
         infile = open(p->infilename, O_RDONLY);
-    
+
     j->pgid = 0;
     child_num = 0;
     while (p!=NULL) {
@@ -214,7 +214,7 @@ void run_job(job *j) {
             if (p->outfilename!=NULL)
                 outfile = open(p->outfilename, O_WRONLY|O_CREAT, 0666);
         }
-        
+
         child_pid = fork();
         if (child_pid==0) {
             run_process(p, j->pgid, infile, outfile);
@@ -224,7 +224,7 @@ void run_job(job *j) {
             if(p->first) j->pgid = child_pid;
             child_num++;
         }
-        
+
         if (infile!=STDIN_FILENO) close(infile);
         if (outfile!=STDOUT_FILENO) close(outfile);
         infile=mypipe[0];
@@ -235,23 +235,23 @@ void run_job(job *j) {
         perror("tcsetpgrp");
         exit(1);
     }
-    
+
     while (child_num!=0) {
         wait(&status);
         child_num--;
     }
-    
+
     if (tcsetpgrp(STDIN_FILENO, shell_pgid) == -1) {
         perror("tcsetpgrp");
         exit(1);
     }
-    
+
     return;
 }
 
 void clean_job(job *j) {
     process *p, *n;
-    
+
     p = j->first_process;
     while (p->next) {
         n = p->next;
@@ -275,22 +275,22 @@ bool run_cmd(char *cmd) {
     sprintf(cmd_buff, cmd);
     child_num = 1;
     run_simple(cmd_buff, &child_group, true);
-    
+
     if (tcsetpgrp(fileno(tty), child_group) == -1) {
         perror("tcsetpgrp");
         return false;
     }
-    
+
     while (child_num!=0) {
         wait(&status);
         child_num--;
     }
-    
+
     if (tcsetpgrp(fileno(tty), getpgid(0)) == -1) {
         perror("tcsetpgrp");
         return false;
     }
-    
+
 
     free(cmd_buff);
     return true;
@@ -307,22 +307,22 @@ char *get_cmd(char* cmd_str) {
 }
 
 void init_shell(void) {
-	signal(SIGINT, SIG_IGN);
+    signal(SIGINT, SIG_IGN);
     signal(SIGQUIT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
-	
-	shell_terminal = STDIN_FILENO;
+
+    shell_terminal = STDIN_FILENO;
     shell_pid = getpid();
 
-	if (setpgid(shell_pid, shell_pgid) < 0) {
-		perror("setpgid");
-		exit(1);
-	}
+    if (setpgid(shell_pid, shell_pgid) < 0) {
+        perror("setpgid");
+        exit(1);
+    }
     shell_pgid = shell_pid;
-    
+
     tcsetpgrp(shell_terminal, shell_pgid);
 }
 
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
     char *cmd_str;
 
     //chdir(pw->pw_dir);
-	init_shell();
+    init_shell();
 
     cmd_str = (char *)malloc(CMD_LEN);
     while ((get_cmd(cmd_str))!=NULL) {
